@@ -187,45 +187,40 @@ private class DiskStore(blockManager: BlockManager, rootDirs: String)
     getBytes(blockId).map(bytes => blockManager.dataDeserialize(blockId, bytes, serializer))
   }
   def getValuesMap(blockId: String, serializer: Serializer): Option[Iterator[Any]] = {
-    logDebug("getValuesMap bf for " + blockId )
 
-	  class AnyIterator(
-			  val file: File) extends Iterator[Any]{
-		  private var current: Iterator[Any] = Iterator.empty
-		  private var pos:Long =0l
-			  private[this] def advance(): Boolean = {
-    logDebug("openning map bf ")
-				  if (pos == file.length()) {
-    logDebug("end")
-					  current = null
-						  false
-				  }
-				  else {
-					  val length = if (file.length() - pos > Integer.MAX_VALUE) Integer.MAX_VALUE else file.length() - pos
-    logDebug("length" + length)
-						  val channel = new RandomAccessFile(file, "r").getChannel()
-						  try {
-						val buffer = 	  channel.map(MapMode.READ_ONLY, pos, length)
-    logDebug("openning map bf for " + blockId + ", pos:" + pos + ", length:" + length)
-						  pos += length
-								  current = blockManager.dataDeserialize(blockId, buffer, serializer)
-								  true
-						  } catch {
-							  case e: Exception =>  {
-								  current = null
-								  false
-							  }
-						  } finally {
-							  channel.close()
-						  }
-				  }
-			  }
-		  def hasNext = (current ne null) && (current.hasNext || advance())
-			  def next()  = if (hasNext) current.next else Iterator.empty.next
-	  }
+    class LazyBufferIterator(val file: File) extends Iterator[Any]{
+      private var current: Iterator[Any] = Iterator.empty
+      private var pos:Long =0l
+      private[this] def advance(): Boolean = {
+        if (pos == file.length()) {
+          current = null
+          false
+        }
+        else {
+          val bufferLength = System.getProperty("spark.storage.mappped.bytebuffer.length", Integer.MAX_VALUE.toString).toInt
+          val length = if (file.length() - pos > bufferLength) bufferLength else file.length() - pos
+          val channel = new RandomAccessFile(file, "r").getChannel()
+          try {
+            val buffer = 	  channel.map(MapMode.READ_ONLY, pos, length)
+            pos += length
+            current = blockManager.dataDeserialize(blockId, buffer, serializer)
+            true
+          } catch {
+            case e: Exception =>  {
+              current = null
+              false
+            }
+          } finally {
+            channel.close()
+          }
+        }
+      }
+      def hasNext = (current ne null) && (current.hasNext || advance())
+      def next()  = if (hasNext) current.next else Iterator.empty.next
+    }
 
 	  val file = getFile(blockId)
-	  Some(new AnyIterator(file))
+	  Some(new LazyBufferIterator(file))
   }
 
   override def remove(blockId: String): Boolean = {
