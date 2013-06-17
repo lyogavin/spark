@@ -77,6 +77,7 @@ class HadoopRDD[K, V](
       fmt.asInstanceOf[Configurable].setConf(conf)
     }
     reader = fmt.getRecordReader(split.inputSplit.value, conf, Reporter.NULL)
+	logInfo("in compute: split len: " + split.inputSplit.value.getLength() + ", locatoins: " + split.inputSplit.value.getLocations().mkString(" "))
 
     // Register an on-task-completion callback to close the input stream.
     context.addOnCompleteCallback{ () => closeIfNeeded() }
