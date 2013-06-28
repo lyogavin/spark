@@ -148,6 +148,7 @@ object SparkBuild extends Build {
       "org.slf4j" % "slf4j-log4j12" % slf4jVersion,
       "commons-daemon" % "commons-daemon" % "1.0.10",
       "com.ning" % "compress-lzf" % "0.8.4",
+      "org.xerial.snappy" % "snappy-java" % "1.0.5",
       "asm" % "asm-all" % "3.3.1",
       "com.google.protobuf" % "protobuf-java" % "2.4.1",
       "de.javakaffee" % "kryo-serializers" % "0.22",

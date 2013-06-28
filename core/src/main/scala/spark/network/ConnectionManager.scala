@@ -2,6 +2,7 @@ package spark.network
 
 import spark._
 
+import java.io._
 import java.nio._
 import java.nio.channels._
 import java.nio.channels.spi._
@@ -380,6 +381,11 @@ private[spark] class ConnectionManager(port: Int) extends Logging {
         val sendingConnectionManagerId = sendingConnection.getRemoteConnectionManagerId()
         logInfo("Removing SendingConnection to " + sendingConnectionManagerId)
 
+        // debug:
+    val sw:StringWriter = new StringWriter()
+    (new Exception()).printStackTrace(new PrintWriter(sw))
+    logInfo("Stack:" + sw.toString())
+
         connectionsById -= sendingConnectionManagerId
 
         messageStatuses.synchronized {
@@ -401,6 +407,7 @@ private[spark] class ConnectionManager(port: Int) extends Logging {
         val receivingConnection = connection.asInstanceOf[ReceivingConnection]
         val remoteConnectionManagerId = receivingConnection.getRemoteConnectionManagerId()
         logInfo("Removing ReceivingConnection to " + remoteConnectionManagerId)
+
 
         val sendingConnectionOpt = connectionsById.get(remoteConnectionManagerId)
           if (! sendingConnectionOpt.isDefined) {

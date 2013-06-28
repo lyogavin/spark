@@ -1,4 +1,5 @@
 package spark.rdd
+import java.io._
 
 import java.io.EOFException
 import java.util.NoSuchElementException
@@ -90,6 +91,13 @@ class HadoopRDD[K, V](
       } catch {
         case eof: EOFException =>
           finished = true
+          /*
+        case e:Exception =>
+    val sw:StringWriter = new StringWriter()
+    e.printStackTrace(new PrintWriter(sw))
+    logInfo("got Exception:" +split.inputSplit.value.getLocations().mkString(";") + ",len:" + split.inputSplit.value.getLength() + ",pos:" + reader.getPos() + ", progress:" + reader.getProgress() + ","+ e + sw.toString())
+          
+          */
       }
       (key, value)
     }
@@ -104,8 +112,10 @@ class HadoopRDD[K, V](
   }
 
   override def getPreferredLocations(split: Partition): Seq[String] = {
+      logInfo("calling getPreferredLocations")
     // TODO: Filtering out "localhost" in case of file:// URLs
     val hadoopSplit = split.asInstanceOf[HadoopPartition]
+    logDebug("geting preferred locatios:" + hadoopSplit.inputSplit.value.getLocations().mkString(","))
     hadoopSplit.inputSplit.value.getLocations.filter(_ != "localhost")
   }
 

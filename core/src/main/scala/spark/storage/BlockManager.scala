@@ -11,6 +11,7 @@ import akka.util.Duration
 import akka.util.duration._
 
 import com.ning.compress.lzf.{LZFInputStream, LZFOutputStream}
+import org.xerial.snappy.{SnappyInputStream, SnappyOutputStream}
 
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream
 
@@ -903,7 +904,8 @@ private[spark] class BlockManager(
    */
   def wrapForCompression(blockId: String, s: OutputStream): OutputStream = {
     if (shouldCompress(blockId)) {
-      (new LZFOutputStream(s)).setFinishBlockOnFlush(true)
+      (if (System.getProperty("spark.storage.useSnappy", "True") == "True") 
+        new SnappyOutputStream(s) else new LZFOutputStream(s).setFinishBlockOnFlush(true))
     } else {
       s
     }
@@ -913,7 +915,10 @@ private[spark] class BlockManager(
    * Wrap an input stream for compression if block compression is enabled for its block type
    */
   def wrapForCompression(blockId: String, s: InputStream): InputStream = {
-    if (shouldCompress(blockId)) new LZFInputStream(s) else s
+    if (shouldCompress(blockId)) 
+      (if (System.getProperty("spark.storage.useSnappy", "True") == "True") 
+        new SnappyInputStream(s) else (new LZFInputStream(s)))
+        else s
   }
 
   def dataSerialize(
@@ -936,6 +941,10 @@ private[spark] class BlockManager(
       bytes: ByteBuffer,
       serializer: Serializer = defaultSerializer): Iterator[Any] = {
     bytes.rewind()
+    if (bytes.remaining() == 0)
+    {
+        return Iterator.empty
+    }
     val stream = wrapForCompression(blockId, new ByteBufferInputStream(bytes, true))
     serializer.newInstance().deserializeStream(stream).asIterator
   }

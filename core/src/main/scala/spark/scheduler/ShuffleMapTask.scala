@@ -144,15 +144,25 @@ private[spark] class ShuffleMapTask(
       for (elem <- rdd.iterator(split, taskContext)) {
         val pair = elem.asInstanceOf[(Any, Any)]
         val bucketId = dep.partitioner.getPartition(pair._1)
+        buckets.writers(bucketId).open()
+      //////logInfo("writing:"+buckets.writers(bucketId).blockId)
         buckets.writers(bucketId).write(pair)
       }
 
       // Commit the writes. Get the size of each bucket block (total block size).
       var totalBytes = 0L
       val compressedSizes: Array[Byte] = buckets.writers.map { writer: BlockObjectWriter =>
+      logDebug("writer size:"+writer.blockId + " "+writer.size())
+      var size =0l
+      if (writer.isOpen) {
         writer.commit()
         writer.close()
-        val size = writer.size()
+        size = writer.size()
+      }
+      else{
+        //  writer.open()
+          writer.close()
+      }
         totalBytes += size
         MapOutputTracker.compressSize(size)
       }
@@ -164,6 +174,9 @@ private[spark] class ShuffleMapTask(
 
       return new MapStatus(blockManager.blockManagerId, compressedSizes)
     } catch { case e: Exception =>
+    val sw:StringWriter = new StringWriter()
+    e.printStackTrace(new PrintWriter(sw))
+    logInfo("got Exception:" + e + sw.toString())
       // If there is an exception from running the task, revert the partial writes
       // and throw the exception upstream to Spark.
       if (buckets != null) {

@@ -37,21 +37,30 @@ private class DiskStore(blockManager: BlockManager, rootDirs: String)
     private var lastValidPosition = 0L
 
     override def open(): DiskBlockObjectWriter = {
-      val fos = new FileOutputStream(f, true)
-      channel = fos.getChannel()
-      bs = blockManager.wrapForCompression(blockId, new FastBufferedOutputStream(fos))
-      objOut = serializer.newInstance().serializeStream(bs)
-      this
+      if (isOpen) {
+        this
+      } else {
+        val fos = new FileOutputStream(f, true)
+        channel = fos.getChannel()
+        bs = blockManager.wrapForCompression(blockId, new FastBufferedOutputStream(fos))
+        objOut = serializer.newInstance().serializeStream(bs)
+        this
+      }
     }
 
     override def close() {
+        if (!isOpen) {
+        val fos = new FileOutputStream(f, true)
+        fos.close()
+        } else {
       objOut.close()
-      bs.close()
+      //bs.close()
       channel = null
       bs = null
       objOut = null
       // Invoke the close callback handler.
       super.close()
+        }
     }
 
     override def isOpen: Boolean = objOut != null

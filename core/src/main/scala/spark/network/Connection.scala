@@ -319,7 +319,35 @@ class SendingConnection(val address: InetSocketAddress, selector_ : Selector,
         if (currentBuffers.size > 0) {
           val buffer = currentBuffers(0)
           val remainingBytes = buffer.remaining
-          val writtenBytes = channel.write(buffer)
+        logDebug("Writing bytes:" + remainingBytes + ",capacity:" + buffer.capacity())
+        var doneWriting = false
+        var retryCount = 10
+        var writtenBytes:Int = 0
+        //while(!doneWriting && retryCount > 0)
+       // {
+              doneWriting = true
+            try{
+                /* dont need to rewind, already did in channel.write
+                if (retryCount != 10)
+                {
+                    buffer.rewind()
+                }
+                */
+                  val writtenBytes = channel.write(buffer)
+                } catch {
+              case eBadAddress:IOException => {
+                if (eBadAddress.getLocalizedMessage().contains("Bad address")) {
+                    logWarning("Error writing in connection to " + getRemoteConnectionManagerId(), eBadAddress)
+                    logWarning("retrying time: " + retryCount)
+                    doneWriting = false
+                    retryCount = retryCount - 1
+                } else
+                {
+                    throw eBadAddress
+                }
+              }
+            }
+        //}
           if (buffer.remaining == 0) {
             currentBuffers -= buffer
           }

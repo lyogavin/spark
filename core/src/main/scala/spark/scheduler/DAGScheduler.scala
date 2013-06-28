@@ -702,12 +702,14 @@ class DAGScheduler(
   }
 
   private def getPreferredLocs(rdd: RDD[_], partition: Int): List[String] = {
+      logDebug("calling getPreferredLocs for " + partition)
     // If the partition is cached, return the cache locations
     val cached = getCacheLocs(rdd)(partition)
     if (cached != Nil) {
       return cached
     }
     // If the RDD has some placement preferences (as is the case for input RDDs), get those
+      logDebug("calling rdd.preferredLocations for " + partition)
     val rddPrefs = rdd.preferredLocations(rdd.partitions(partition)).toList
     if (rddPrefs != Nil) {
       return rddPrefs

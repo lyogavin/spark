@@ -25,6 +25,8 @@ private[spark] class BlockStoreShuffleFetcher extends ShuffleFetcher with Loggin
     val splitsByAddress = new HashMap[BlockManagerId, ArrayBuffer[(Int, Long)]]
     for (((address, size), index) <- statuses.zipWithIndex) {
       splitsByAddress.getOrElseUpdate(address, ArrayBuffer()) += ((index, size))
+    logDebug("Map output location for shuffle %d, reduce %d: address:%s, size:%d".format(
+      shuffleId, reduceId, address, size))
     }
 
     val blocksByAddress: Seq[(BlockManagerId, Seq[(String, Long)])] = splitsByAddress.toSeq.map {
