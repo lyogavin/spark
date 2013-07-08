@@ -77,7 +77,11 @@ class PairRDDFunctions[K: ClassManifest, V: ClassManifest](
       // A sanity check to make sure mergeCombiners is not defined.
       assert(mergeCombiners == null)
       val values = new ShuffledRDD[K, V](self, partitioner, serializerClass)
-      values.mapPartitions(aggregator.combineValuesByKey(_), true)
+      val reduceSideCompression = 
+        System.getProperty("spark.reduce.side.combine.compression","false") == "true"
+      values.mapPartitions(
+        if (reduceSideCompression) aggregator.combineValuesByKeyInCompression(_)
+        else aggregator.combineValuesByKey(_), true)
     }
   }
 
