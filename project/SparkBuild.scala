@@ -179,8 +179,8 @@ object SparkBuild extends Build {
       "net.liftweb" % "lift-json_2.9.2" % "2.5",
       "org.apache.mesos" % "mesos" % "0.9.0-incubating",
       "io.netty" % "netty-all" % "4.0.0.Beta2",
-      "org.apache.derby" % "derby" % "10.4.2.0" % "test",
-      "org.xerial.snappy" % "snappy-java" % "1.0.5"
+      "org.xerial.snappy" % "snappy-java" % "1.0.5",
+      "org.apache.derby" % "derby" % "10.4.2.0" % "test"
     ) ++ (
       if (HADOOP_MAJOR_VERSION == "2") {
         if (HADOOP_YARN) {
