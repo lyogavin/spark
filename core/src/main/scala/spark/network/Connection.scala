@@ -336,7 +336,33 @@ class SendingConnection(val address: InetSocketAddress, selector_ : Selector,
         if (currentBuffers.size > 0) {
           val buffer = currentBuffers(0)
           val remainingBytes = buffer.remaining
-          val writtenBytes = channel.write(buffer)
+        //  val writtenBytes = channel.write(buffer)
+
+
+        // workaround for bad address
+          logDebug("Writing bytes:" + remainingBytes + ",capacity:" + buffer.capacity())
+          var doneWriting = false
+          var writtenBytes:Int = 0
+          doneWriting = true
+          try{
+              val writtenBytes = channel.write(buffer)
+          } catch {
+              case eBadAddress:IOException => {
+                                   if (eBadAddress.getLocalizedMessage().contains("Bad address")) {
+                                       logWarning("Error writing in connection to " + getRemoteConnectionManagerId(), eBadAddress)
+                                           doneWriting = false
+                                   } else
+                                   {
+                                       throw eBadAddress
+                                   }
+                               }
+          }
+
+
+
+
+
+
           if (buffer.remaining == 0) {
             currentBuffers -= buffer
           }
